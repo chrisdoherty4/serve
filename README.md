@@ -9,8 +9,9 @@ go run github.com/chrisdoherty4/serve@latest
 ## Flags
 
 ```
-  -address string
+  -a string
         The address to listen on. (default ":8080")
-  -dir string
+  -d string
         The directory to serve files from. (default ".")
+  -s    Silence server logging.
 ```

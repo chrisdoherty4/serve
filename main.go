@@ -16,7 +16,7 @@ func main() {
 	// Configure flags using the flag singleton.
 	dir := flag.String("d", ".", "The directory to serve files from.")
 	address := flag.String("a", ":8080", "The address to listen on.")
-	silent := flag.Bool("s", false, "Disable server logging.")
+	silent := flag.Bool("s", false, "Silence server logging.")
 	flag.Parse()
 
 	if *silent {
