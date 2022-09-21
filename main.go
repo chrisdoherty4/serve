@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -13,15 +14,28 @@ import (
 
 func main() {
 	// Configure flags using the flag singleton.
-	dir := flag.String("dir", ".", "The directory to serve files from. Defaults to the current dir.")
-	address := flag.String("address", ":8080", "The address to listen on. Defaults to :8080.")
+	dir := flag.String("d", ".", "The directory to serve files from.")
+	address := flag.String("a", ":8080", "The address to listen on.")
+	silent := flag.Bool("s", false, "Disable server logging.")
 	flag.Parse()
+
+	if *silent {
+		log.SetOutput(io.Discard)
+	}
 
 	log.Printf("Serving files from %v", *dir)
 
 	mux := http.NewServeMux()
-	mux.Handle("/", http.FileServer(http.Dir(*dir)))
 
+	// Add a handler that logs requests delegating file serving to the standard libraries FileServer.
+	fileServer := http.FileServer(http.Dir(*dir))
+	mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		recorder := &statusRecorder{ResponseWriter: w, Status: 200}
+		fileServer.ServeHTTP(recorder, r)
+		log.Printf("%v %v %v", r.Method, recorder.Status, r.URL.Path)
+	}))
+
+	// Create a server and launch in a go routine so we can gracefully shutdown when signaled.
 	server := http.Server{
 		Addr:    *address,
 		Handler: mux,
@@ -49,4 +63,15 @@ func main() {
 	if err := server.Shutdown(ctx); err != nil {
 		log.Fatalf("Received unexpected error during shutdown: %v", err)
 	}
+}
+
+// statusRecorder records the status of a request written with WriteHeader.
+type statusRecorder struct {
+	http.ResponseWriter
+	Status int
+}
+
+func (r *statusRecorder) WriteHeader(status int) {
+	r.Status = status
+	r.ResponseWriter.WriteHeader(status)
 }
