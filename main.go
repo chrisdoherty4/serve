@@ -17,6 +17,8 @@ func main() {
 	address := flag.String("address", ":8080", "The address to listen on. Defaults to :8080.")
 	flag.Parse()
 
+	log.Printf("Serving files from %v", *dir)
+
 	mux := http.NewServeMux()
 	mux.Handle("/", http.FileServer(http.Dir(*dir)))
 
